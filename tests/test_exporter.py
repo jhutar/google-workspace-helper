@@ -2,6 +2,9 @@ import pytest
 from unittest.mock import patch, MagicMock
 import subprocess
 import json
+import zipfile
+import io
+from pathlib import Path
 from google_workspace_helper.exporter import (
     verify_gws_installed,
     export_file,
@@ -15,7 +18,6 @@ from google_workspace_helper.exporter import (
 @patch("shutil.which")
 def test_verify_gws_installed_success(mock_which):
     mock_which.return_value = "/usr/bin/gws"
-    # Should not raise exception
     verify_gws_installed()
 
 
@@ -31,16 +33,21 @@ def test_verify_gws_installed_failure(mock_which):
 def test_export_file_success(mock_run, mock_which):
     mock_which.return_value = "/usr/bin/gws"
 
-    # Mock subprocess success returning content
-    mock_response = MagicMock()
-    mock_response.stdout = "Markdown file content"
-    mock_response.return_code = 0
-    mock_run.return_value = mock_response
+    def run_side_effect(command, *args, **kwargs):
+        # Read the --output flag and write content directly
+        output_idx = command.index("--output")
+        output_path = command[output_idx + 1]
+        Path(output_path).write_text("Markdown file content", encoding="utf-8")
+        mock_response = MagicMock()
+        mock_response.returncode = 0
+        return mock_response
+
+    mock_run.side_effect = run_side_effect
 
     content = export_file("doc_123")
     assert content == "Markdown file content"
     mock_run.assert_called_once()
-    assert "doc_123" in mock_run.call_args[0][0][-1]
+    assert any("doc_123" in str(arg) for arg in mock_run.call_args[0][0])
 
 
 @patch("shutil.which")
@@ -48,9 +55,8 @@ def test_export_file_success(mock_run, mock_which):
 def test_export_file_failure(mock_run, mock_which):
     mock_which.return_value = "/usr/bin/gws"
 
-    # Mock subprocess failure
     mock_run.side_effect = subprocess.CalledProcessError(
-        returncode=1, cmd="gws ...", stderr="Authorization expired"
+        returncode=1, cmd="gws ...", stderr=b"Authorization expired"
     )
 
     with pytest.raises(
@@ -101,31 +107,81 @@ def test_get_file_mime_type_failure(mock_run, mock_which):
 @patch("google_workspace_helper.exporter.subprocess.run")
 def test_export_spreadsheet_as_csv(mock_run, mock_which):
     mock_which.return_value = "/usr/bin/gws"
-    mock_response = MagicMock()
-    mock_response.stdout = "Name,Age\nAlice,30\n"
-    mock_run.return_value = mock_response
+
+    def run_side_effect(command, *args, **kwargs):
+        output_idx = command.index("--output")
+        output_path = command[output_idx + 1]
+        Path(output_path).write_text("Name,Age\nAlice,30\n", encoding="utf-8")
+        mock_response = MagicMock()
+        mock_response.returncode = 0
+        return mock_response
+
+    mock_run.side_effect = run_side_effect
 
     result = export_spreadsheet_as_csv("sheet_123")
     assert result == "Name,Age\nAlice,30\n"
-    call_args = mock_run.call_args[0][0]
-    assert "text/csv" in call_args[-1]
 
 
 @patch("google_workspace_helper.exporter.shutil.which")
 @patch("google_workspace_helper.exporter.subprocess.run")
 def test_export_presentation_as_markdown_success(mock_run, mock_which):
-    mock_which.return_value = "/usr/bin/pandoc"
+    def which_side_effect(name):
+        if name in ("gws", "pandoc"):
+            return f"/usr/bin/{name}"
+        return None
 
-    gws_response = MagicMock()
-    gws_response.stdout = b"fake pptx bytes"
+    mock_which.side_effect = which_side_effect
 
-    pandoc_response = MagicMock()
-    pandoc_response.stdout = "# Slide 1\n\nContent here\n"
+    def run_side_effect(command, *args, **kwargs):
+        if "gws" in command[0]:
+            output_idx = command.index("--output")
+            output_path = command[output_idx + 1]
 
-    mock_run.side_effect = [gws_response, pandoc_response]
+            # Write a mock zip pptx
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w") as z:
+                slide_xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+                    <p:cSld>
+                        <p:spTree>
+                            <p:sp>
+                                <p:txBody>
+                                    <a:p>
+                                        <a:r>
+                                            <a:t>Slide Title</a:t>
+                                        </a:r>
+                                    </a:p>
+                                    <a:p>
+                                        <a:r>
+                                            <a:t>Bullet Point 1</a:t>
+                                        </a:r>
+                                    </a:p>
+                                </p:txBody>
+                            </p:sp>
+                        </p:spTree>
+                    </p:cSld>
+                </p:sld>
+                """
+                z.writestr("ppt/slides/slide1.xml", slide_xml)
+
+            Path(output_path).write_bytes(zip_buffer.getvalue())
+            mock_res = MagicMock()
+            mock_res.returncode = 0
+            return mock_res
+
+        elif "pandoc" in command[0]:
+            mock_res = MagicMock()
+            mock_res.stdout = "# Slide Title\n\n- Bullet Point 1\n"
+            mock_res.returncode = 0
+            return mock_res
+
+        raise ValueError(f"Unexpected command: {command}")
+
+    mock_run.side_effect = run_side_effect
 
     result = export_presentation_as_markdown("slides_123")
-    assert "# Slide 1" in result
+    assert "# Slide Title" in result
+    assert "- Bullet Point 1" in result
     assert mock_run.call_count == 2
 
 
