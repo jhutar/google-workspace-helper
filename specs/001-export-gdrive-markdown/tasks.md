@@ -18,10 +18,10 @@
 
 **Purpose**: Project initialization, directory structure, and linting toolchain setup.
 
-- [ ] T001 Create project directories `src/google_workspace_helper/` and `tests/`
-- [ ] T002 Initialize empty modules at `src/google_workspace_helper/__init__.py` and `tests/__init__.py`
-- [ ] T003 [P] Create pre-commit config at `.pre-commit-config.yaml` with Ruff, Bandit, and YAML linting
-- [ ] T004 [P] Create project execution entrypoint at `Makefile` to automate bootstrapping, testing, and checks
+- [x] T001 Create project directories `src/google_workspace_helper/` and `tests/`
+- [x] T002 Initialize empty modules at `src/google_workspace_helper/__init__.py` and `tests/__init__.py`
+- [x] T003 [P] Create pre-commit config at `.pre-commit-config.yaml` with Ruff, Bandit, and YAML linting
+- [x] T004 [P] Create project execution entrypoint at `Makefile` to automate bootstrapping, testing, and checks
 
 ---
 
@@ -29,8 +29,8 @@
 
 **Purpose**: Core dependency verification and basic CLI routing shell.
 
-- [ ] T005 Implement `gws` command presence verification on system PATH in `src/google_workspace_helper/exporter.py`
-- [ ] T006 [P] Create argparse routing shell framework in `src/google_workspace_helper/cli.py`
+- [x] T005 Implement `gws` command presence verification on system PATH in `src/google_workspace_helper/exporter.py`
+- [x] T006 [P] Create argparse routing shell framework in `src/google_workspace_helper/cli.py`
 
 **Checkpoint**: Core setup complete. Code quality checks (`make check-all`) execute cleanly.
 
@@ -44,14 +44,14 @@
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Create CLI argparse validation test cases in `tests/test_cli.py`
-- [ ] T008 [P] [US1] Create subprocess execution and mock `gws` test cases in `tests/test_exporter.py`
+- [x] T007 [P] [US1] Create CLI argparse validation test cases in `tests/test_cli.py`
+- [x] T008 [P] [US1] Create subprocess execution and mock `gws` test cases in `tests/test_exporter.py`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [P] [US1] Implement argparse export subcommand with target options in `src/google_workspace_helper/cli.py`
-- [ ] T010 [US1] Implement `subprocess.run` wrapper to execute `gws drive files export` in `src/google_workspace_helper/exporter.py`
-- [ ] T011 [US1] Connect CLI commands to the exporter module and verify end-to-end text exports in `src/google_workspace_helper/cli.py`
+- [x] T009 [P] [US1] Implement argparse export subcommand with target options in `src/google_workspace_helper/cli.py`
+- [x] T010 [US1] Implement `subprocess.run` wrapper to execute `gws drive files export` in `src/google_workspace_helper/exporter.py`
+- [x] T011 [US1] Connect CLI commands to the exporter module and verify end-to-end text exports in `src/google_workspace_helper/cli.py`
 
 **Checkpoint**: Standard document export is functional and completely covered by unit tests.
 
@@ -65,13 +65,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] Create base64 extraction and pattern replacement test cases in `tests/test_postprocessor.py`
+- [x] T012 [P] [US2] Create base64 extraction and pattern replacement test cases in `tests/test_postprocessor.py`
 
 ### Implementation for User Story 2
 
-- [ ] T013 [P] [US2] Implement regex base64 URI matching and image decoding in `src/google_workspace_helper/postprocessor.py`
-- [ ] T014 [US2] Implement secure directory `/tmp/<doc_id>/` creation and binary write logic in `src/google_workspace_helper/postprocessor.py`
-- [ ] T015 [US2] Integrate the image extraction post-processing step into the main CLI export pipeline in `src/google_workspace_helper/cli.py`
+- [x] T013 [P] [US2] Implement regex base64 URI matching and image decoding in `src/google_workspace_helper/postprocessor.py`
+- [x] T014 [US2] Implement secure directory `/tmp/<doc_id>/` creation and binary write logic in `src/google_workspace_helper/postprocessor.py`
+- [x] T015 [US2] Integrate the image extraction post-processing step into the main CLI export pipeline in `src/google_workspace_helper/cli.py`
 
 **Checkpoint**: Base64 images are cleanly parsed, extracted locally, and properly cross-referenced.
 
@@ -85,12 +85,12 @@
 
 ### Tests for User Story 3
 
-- [ ] T016 [P] [US3] Create specific Sheet and Slides test assertions inside `tests/test_exporter.py`
+- [x] T016 [P] [US3] Create specific Sheet and Slides test assertions inside `tests/test_exporter.py`
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Add mime-type detection and spreadsheet/slides formatting options to the subprocess call in `src/google_workspace_helper/exporter.py`
-- [ ] T018 [US3] Verify correct GFM table layout outputs for spreadsheets and slide sections for presentations
+- [x] T017 [US3] Add mime-type detection and spreadsheet/slides formatting options to the subprocess call in `src/google_workspace_helper/exporter.py`
+- [x] T018 [US3] Verify correct GFM table layout outputs for spreadsheets and slide sections for presentations
 
 **Checkpoint**: Spreadsheets and Slides export capabilities fully validated.
 
@@ -100,8 +100,8 @@
 
 **Purpose**: Error containment, user experience refinements, and quality gates enforcement.
 
-- [ ] T019 Implement fail-fast exception wrapper to suppress complex Python stacktraces for command-line users
-- [ ] T020 Run entire quality suite (`make check-all` and `make test`) ensuring 100% linter passes and coverage >= 90%
+- [x] T019 Implement fail-fast exception wrapper to suppress complex Python stacktraces for command-line users
+- [x] T020 Run entire quality suite (`make check-all` and `make test`) ensuring 100% linter passes and coverage >= 90%
 
 ---
 
