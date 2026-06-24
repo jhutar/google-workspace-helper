@@ -6,6 +6,31 @@ from google_workspace_helper.exporter import export_file
 from google_workspace_helper.postprocessor import post_process_markdown
 
 
+def extract_file_id(input_str: str) -> str:
+    """Extracts a Google Drive file ID from a full URL if provided, otherwise returns the input string."""
+    input_str = input_str.strip()
+    if not input_str:
+        return ""
+
+    # Check if input looks like a URL
+    if input_str.startswith(("http://", "https://")):
+        # Match standard /d/<id> format
+        d_match = re.search(r"/d/([a-zA-Z0-9_-]+)", input_str)
+        if d_match:
+            return d_match.group(1)
+
+        # Match query parameter open?id=<id> or open?id=<id>&...
+        id_match = re.search(r"[?&]id=([a-zA-Z0-9_-]+)", input_str)
+        if id_match:
+            return id_match.group(1)
+
+        raise ValueError(
+            f"Error: Could not extract Google Drive File ID from URL '{input_str}'."
+        )
+
+    return input_str
+
+
 def validate_file_id(file_id: str) -> None:
     """Validates that Google Drive file ID is a safe, non-empty alphanumeric string."""
     if not file_id:
@@ -19,8 +44,9 @@ def validate_file_id(file_id: str) -> None:
 
 def handle_export(args: argparse.Namespace) -> int:
     """Handles the 'export' subcommand logic."""
-    file_id = args.file_id
+    raw_input = args.file_id
     try:
+        file_id = extract_file_id(raw_input)
         validate_file_id(file_id)
     except ValueError as e:
         print(str(e), file=sys.stderr)
@@ -63,7 +89,9 @@ def main() -> int:
     export_parser = subparsers.add_parser(
         "export", help="Export Google Drive document, spreadsheet, or slide file."
     )
-    export_parser.add_argument("file_id", help="Google Drive file ID to export.")
+    export_parser.add_argument(
+        "file_id", help="Google Drive file ID or full URL to export."
+    )
     export_parser.add_argument(
         "-o",
         "--output",
