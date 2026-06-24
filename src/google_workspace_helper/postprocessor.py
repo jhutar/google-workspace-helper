@@ -1,8 +1,12 @@
+import csv
+import io
+import logging
 import re
 import base64
 from pathlib import Path
 
-# Regular expression to find Markdown images with base64 URIs or raw base64 data URIs
+logger = logging.getLogger("google_workspace_helper")
+
 IMAGE_RE = re.compile(
     r"data:image/(?P<ext>[a-zA-Z0-9+-.]+);base64,(?P<data>[a-zA-Z0-9+/= \r\n]+)"
 )
@@ -50,6 +54,30 @@ def post_process_markdown(markdown_content: str, file_id: str) -> str:
         image_index += 1
         return local_ref
 
-    # Replace matches in markdown content
     processed_content = IMAGE_RE.sub(replace_match, markdown_content)
     return processed_content
+
+
+def _escape_pipe(cell: str) -> str:
+    return cell.replace("|", "\\|")
+
+
+def csv_to_markdown_table(csv_content: str) -> str:
+    reader = csv.reader(io.StringIO(csv_content))
+    rows = list(reader)
+
+    if not rows:
+        return ""
+
+    header = rows[0]
+    escaped_header = [_escape_pipe(c.strip()) for c in header]
+    lines = ["| " + " | ".join(escaped_header) + " |"]
+    lines.append("| " + " | ".join("---" for _ in header) + " |")
+
+    for row in rows[1:]:
+        while len(row) < len(header):
+            row.append("")
+        escaped = [_escape_pipe(c.strip()) for c in row[: len(header)]]
+        lines.append("| " + " | ".join(escaped) + " |")
+
+    return "\n".join(lines) + "\n"

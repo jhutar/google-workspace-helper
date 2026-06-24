@@ -1,7 +1,10 @@
 import os
 import shutil
 from pathlib import Path
-from google_workspace_helper.postprocessor import post_process_markdown
+from google_workspace_helper.postprocessor import (
+    post_process_markdown,
+    csv_to_markdown_table,
+)
 
 
 def test_post_process_markdown_with_images():
@@ -45,3 +48,43 @@ def test_post_process_markdown_no_images():
 
     assert clean_markdown == raw_markdown
     assert not os.path.exists(f"/tmp/{file_id}")
+
+
+def test_csv_to_markdown_table_basic():
+    csv_content = "Name,Age,City\nAlice,30,Prague\nBob,25,Brno\n"
+    result = csv_to_markdown_table(csv_content)
+    expected = (
+        "| Name | Age | City |\n"
+        "| --- | --- | --- |\n"
+        "| Alice | 30 | Prague |\n"
+        "| Bob | 25 | Brno |\n"
+    )
+    assert result == expected
+
+
+def test_csv_to_markdown_table_pipe_escaping():
+    csv_content = 'Header1,Header2\n"value|with|pipes",normal\n'
+    result = csv_to_markdown_table(csv_content)
+    assert "value\\|with\\|pipes" in result
+    assert "normal" in result
+
+
+def test_csv_to_markdown_table_empty():
+    assert csv_to_markdown_table("") == ""
+
+
+def test_csv_to_markdown_table_header_only():
+    csv_content = "Col1,Col2,Col3\n"
+    result = csv_to_markdown_table(csv_content)
+    assert "| Col1 | Col2 | Col3 |" in result
+    assert "| --- | --- | --- |" in result
+    lines = result.strip().split("\n")
+    assert len(lines) == 2
+
+
+def test_csv_to_markdown_table_uneven_rows():
+    csv_content = "A,B,C\n1,2\n4,5,6\n"
+    result = csv_to_markdown_table(csv_content)
+    lines = result.strip().split("\n")
+    assert len(lines) == 4
+    assert lines[2] == "| 1 | 2 |  |"

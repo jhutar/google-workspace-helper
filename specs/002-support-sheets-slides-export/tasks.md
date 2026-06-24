@@ -18,7 +18,7 @@
 
 **Purpose**: Project initialization and logging configuration setup.
 
-- [ ] T001 Configure application logging infrastructure (DEBUG level to log file, WARNING/WARN level to stderr) in `src/google_workspace_helper/logging_config.py`
+- [X] T001 Configure application logging infrastructure (DEBUG level to log file, WARNING/WARN level to stderr) in `src/google_workspace_helper/logging_config.py`
 
 ---
 
@@ -28,8 +28,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Implement file MimeType detection and verification from metadata using `gws drive files get` in `src/google_workspace_helper/exporter.py`
-- [ ] T003 Update CLI router to dispatch spreadsheet/presentation types to their respective processors in `src/google_workspace_helper/cli.py`
+- [X] T002 Implement file MimeType detection and verification from metadata using `gws drive files get` in `src/google_workspace_helper/exporter.py`
+- [X] T003 Update CLI router to dispatch spreadsheet/presentation types to their respective processors in `src/google_workspace_helper/cli.py`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel.
 
@@ -43,13 +43,13 @@
 
 ### Tests for User Story 1
 
-- [ ] T004 [P] [US1] Create unit tests for CSV-to-Markdown table parsing and formatting in `tests/test_postprocessor.py`
+- [X] T004 [P] [US1] Create unit tests for CSV-to-Markdown table parsing and formatting in `tests/test_postprocessor.py`
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Implement custom CSV parsing and Markdown table generation in `src/google_workspace_helper/postprocessor.py`
-- [ ] T006 [US1] Implement Google Spreadsheet CSV download and warning dispatch logic in `src/google_workspace_helper/exporter.py`
-- [ ] T007 [US1] Add temporary CSV cleanup handler on success in `src/google_workspace_helper/postprocessor.py`
+- [X] T005 [US1] Implement custom CSV parsing and Markdown table generation in `src/google_workspace_helper/postprocessor.py`
+- [X] T006 [US1] Implement Google Spreadsheet CSV download and warning dispatch logic in `src/google_workspace_helper/exporter.py`
+- [X] T007 [US1] Add temporary CSV cleanup handler on success in `src/google_workspace_helper/postprocessor.py`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently.
 
@@ -63,13 +63,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T008 [P] [US2] Create unit tests for Slide pptx-to-markdown Pandoc wrapper in `tests/test_exporter.py`
+- [X] T008 [P] [US2] Create unit tests for Slide pptx-to-markdown Pandoc wrapper in `tests/test_exporter.py`
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Implement local Pandoc verification and subprocess execution logic in `src/google_workspace_helper/exporter.py`
-- [ ] T010 [US2] Implement temporary PPTX download and warning handling for missing `pandoc` in `src/google_workspace_helper/exporter.py`
-- [ ] T011 [US2] Add temporary PPTX cleanup handler on success in `src/google_workspace_helper/exporter.py`
+- [X] T009 [US2] Implement local Pandoc verification and subprocess execution logic in `src/google_workspace_helper/exporter.py`
+- [X] T010 [US2] Implement temporary PPTX download and warning handling for missing `pandoc` in `src/google_workspace_helper/exporter.py`
+- [X] T011 [US2] Add temporary PPTX cleanup handler on success in `src/google_workspace_helper/exporter.py`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently.
 
@@ -79,9 +79,9 @@
 
 **Purpose**: Improvements that affect multiple user stories.
 
-- [ ] T012 [P] Update unit tests to integrate logging configuration checks in `tests/test_logging_config.py`
-- [ ] T013 Run pre-commit code formatting and quality linter gates
-- [ ] T014 Run `quickstart.md` validation scenario checks to verify final correctness
+- [X] T012 [P] Update unit tests to integrate logging configuration checks in `tests/test_logging_config.py`
+- [X] T013 Run pre-commit code formatting and quality linter gates
+- [X] T014 Run `quickstart.md` validation scenario checks to verify final correctness
 
 ---
 

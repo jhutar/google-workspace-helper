@@ -2,8 +2,19 @@ import argparse
 import sys
 import re
 from pathlib import Path
-from google_workspace_helper.exporter import export_file
-from google_workspace_helper.postprocessor import post_process_markdown
+from google_workspace_helper.logging_config import setup_logging
+from google_workspace_helper.exporter import (
+    export_file,
+    get_file_mime_type,
+    export_spreadsheet_as_csv,
+    export_presentation_as_markdown,
+    MIME_SPREADSHEET,
+    MIME_PRESENTATION,
+)
+from google_workspace_helper.postprocessor import (
+    post_process_markdown,
+    csv_to_markdown_table,
+)
 
 
 def extract_file_id(input_str: str) -> str:
@@ -43,7 +54,6 @@ def validate_file_id(file_id: str) -> None:
 
 
 def handle_export(args: argparse.Namespace) -> int:
-    """Handles the 'export' subcommand logic."""
     raw_input = args.file_id
     try:
         file_id = extract_file_id(raw_input)
@@ -52,22 +62,24 @@ def handle_export(args: argparse.Namespace) -> int:
         print(str(e), file=sys.stderr)
         return 1
 
-    # Determine default output path if not specified
     output_path_str = args.output
     if not output_path_str:
         output_path_str = f"{file_id}.md"
     output_path = Path(output_path_str)
 
     try:
-        # Step 1: Export content from Google Workspace via gws
-        raw_markdown = export_file(file_id)
+        mime_type = get_file_mime_type(file_id)
 
-        # Step 2: Post-process base64 inline images
-        clean_markdown = post_process_markdown(raw_markdown, file_id)
+        if mime_type == MIME_SPREADSHEET:
+            csv_content = export_spreadsheet_as_csv(file_id)
+            clean_markdown = csv_to_markdown_table(csv_content)
+        elif mime_type == MIME_PRESENTATION:
+            clean_markdown = export_presentation_as_markdown(file_id)
+        else:
+            raw_markdown = export_file(file_id)
+            clean_markdown = post_process_markdown(raw_markdown, file_id)
 
-        # Step 3: Write final markdown content to output path
         output_path.write_text(clean_markdown, encoding="utf-8")
-
         print(f"Success: Exported clean markdown to {output_path}")
         return 0
     except Exception as e:
@@ -76,7 +88,7 @@ def handle_export(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    """Entry point for the CLI tool."""
+    setup_logging()
     parser = argparse.ArgumentParser(
         prog="google-workspace-helper",
         description="CLI utility to assist with Google Workspace operations.",
