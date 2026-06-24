@@ -1,0 +1,20 @@
+[project]
+name = "google-workspace-helper"
+version = "0.1.0"
+description = "CLI utility to assist with Google Workspace operations"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+google-workspace-helper = "google_workspace_helper.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pre-commit>=3.0.0",
+]
