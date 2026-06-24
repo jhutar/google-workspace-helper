@@ -1,5 +1,6 @@
 import pytest
 import argparse
+from unittest.mock import patch
 from google_workspace_helper.cli import extract_file_id, validate_file_id, handle_export
 
 
@@ -63,3 +64,40 @@ def test_handle_export_invalid_id(capsys):
     assert status == 1
     captured = capsys.readouterr()
     assert "Invalid File ID" in captured.err
+
+
+@patch("google_workspace_helper.cli.get_file_mime_type")
+@patch("google_workspace_helper.cli.export_file")
+@patch("google_workspace_helper.cli.post_process_markdown")
+def test_handle_export_to_stdout(mock_process, mock_export, mock_mime, capsys):
+    mock_mime.return_value = "application/vnd.google-apps.document"
+    mock_export.return_value = "raw markdown content"
+    mock_process.return_value = "# Processed Markdown"
+
+    args = argparse.Namespace(file_id="doc_123", output=None)
+    status = handle_export(args)
+    assert status == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == "# Processed Markdown"
+    assert "Success: Exported" not in captured.out
+
+
+@patch("google_workspace_helper.cli.get_file_mime_type")
+@patch("google_workspace_helper.cli.export_file")
+@patch("google_workspace_helper.cli.post_process_markdown")
+def test_handle_export_to_file(mock_process, mock_export, mock_mime, tmp_path, capsys):
+    mock_mime.return_value = "application/vnd.google-apps.document"
+    mock_export.return_value = "raw markdown content"
+    mock_process.return_value = "# Processed Markdown"
+
+    out_file = tmp_path / "test_out.md"
+    args = argparse.Namespace(file_id="doc_123", output=str(out_file))
+    status = handle_export(args)
+    assert status == 0
+
+    assert out_file.exists()
+    assert out_file.read_text(encoding="utf-8") == "# Processed Markdown"
+
+    captured = capsys.readouterr()
+    assert f"Success: Exported clean markdown to {out_file}" in captured.out

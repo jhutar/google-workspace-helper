@@ -63,9 +63,6 @@ def handle_export(args: argparse.Namespace) -> int:
         return 1
 
     output_path_str = args.output
-    if not output_path_str:
-        output_path_str = f"{file_id}.md"
-    output_path = Path(output_path_str)
 
     try:
         mime_type = get_file_mime_type(file_id)
@@ -79,8 +76,13 @@ def handle_export(args: argparse.Namespace) -> int:
             raw_markdown = export_file(file_id)
             clean_markdown = post_process_markdown(raw_markdown, file_id)
 
-        output_path.write_text(clean_markdown, encoding="utf-8")
-        print(f"Success: Exported clean markdown to {output_path}")
+        if output_path_str:
+            output_path = Path(output_path_str)
+            output_path.write_text(clean_markdown, encoding="utf-8")
+            print(f"Success: Exported clean markdown to {output_path}")
+        else:
+            sys.stdout.write(clean_markdown)
+
         return 0
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -107,7 +109,7 @@ def main() -> int:
     export_parser.add_argument(
         "-o",
         "--output",
-        help="Optional path to save output markdown. Defaults to '<file_id>.md'.",
+        help="Optional path to save output markdown. If omitted, dumps content directly to stdout.",
     )
     export_parser.set_defaults(func=handle_export)
 
