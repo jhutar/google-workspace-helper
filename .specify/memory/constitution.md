@@ -1,50 +1,64 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+SYNC IMPACT REPORT
+==================
+Version Change: [none] -> 1.0.0
+Bump Rationale: Initial ratification of the constitution defining Python project standards, repository layout, and testing/fail-fast governance.
+Modified Principles:
+  - I. Python Best Practices & PEP 8 Standards (Added)
+  - II. Right Repository Layout (Added)
+  - III. Testable and Maintainable Code (Added)
+  - IV. Fail Fast (Added)
+  - V. No Assumptions (Added)
+Added Sections:
+  - Coding Standards and Linting (Section 2)
+  - Development Workflow and Quality Gates (Section 3)
+Removed Sections:
+  - None
+Templates Checked/Updated:
+  - .specify/templates/plan-template.md: ✅ updated (no placeholders needing manual update, aligns with principles)
+  - .specify/templates/spec-template.md: ✅ updated (no placeholders needing manual update, aligns with principles)
+  - .specify/templates/tasks-template.md: ✅ updated (no placeholders needing manual update, aligns with principles)
+Follow-up TODOs:
+  - None (All placeholders successfully filled with concrete text)
+-->
+
+# Google Cloud CLI (gcloud-cli) Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Python Best Practices & PEP 8 Standards
+The codebase MUST strictly adhere to PEP 8 standards, leverage robust static typing (via `mypy`), and utilize idiomatic Python patterns. All code formatting and linting rules MUST be enforced automatically (e.g., via Ruff or Black and isort).
+**Rationale**: Adhering to unified styling and static analysis prevents common runtime bugs, reduces cognitive load, and ensures the codebase remains maintainable as complexity grows.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Right Repository Layout
+The repository MUST follow the standard Python `src/` layout (with source code in `src/` and tests in `tests/`). The structure must strictly separate core library business logic from CLI interface/presentation layers and API routers.
+**Rationale**: Clean separation of directories avoids circular imports, prevents layout pollution, simplifies packaging, and makes testing components in isolation straightforward.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Testable and Maintainable Code
+Every new feature or bug fix MUST have corresponding tests (unit, contract, or integration tests). Code MUST be structured for testability—avoiding global state, utilizing dependency injection, and keeping functions/classes small with single responsibilities.
+**Rationale**: High-quality automated test suites ensure long-term stability and confidence. Designing for testability naturally leads to decoupled, modular, and maintainable software architecture.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Fail Fast
+The application MUST validate all input parameters, configuration variables, and environment dependencies immediately at startup or at the boundaries of public interfaces. Invalid states or invalid inputs MUST raise explicit, descriptive exceptions immediately rather than returning null or failing silently.
+**Rationale**: Catching invalid data or unexpected environments early prevents corrupted states, reduces debugging effort, and ensures robust error containment.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. No Assumptions (Explicit over Implicit)
+Developers MUST NOT assume that remote services, database schemas, or system configurations are always correct or available. All system schemas and API boundaries MUST be validated explicitly (e.g., using type-safe validation libraries like Pydantic).
+**Rationale**: Explicit verification of configurations and system contracts prevents silent failures and ensures clear boundary enforcement across complex dependencies.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Coding Standards and Linting
+1. Static Type Checking: All Python files MUST have 100% type annotations and pass strict static type-checking gates (such as `mypy --strict`).
+2. Code Formatter & Linter: Code formatting MUST be run automatically using standard ecosystem tools (e.g., `ruff check` and `ruff format`). No code containing linting errors or formatting violations can be merged.
+3. Import Management: Imports MUST be grouped logically (standard library, third-party, local) and sorted.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Development Workflow and Quality Gates
+1. Testing Coverage: Minimum acceptable branch and statement test coverage is 90%. Any new pull request MUST NOT lower the existing overall code coverage.
+2. Code Review Requirements: All pull requests require at least one approving review. Pull requests MUST pass all CI tests (formatting, linting, type-checking, and test suite execution) before merge.
+3. Empirical Defect Verification: For any bug fix, the developer MUST first write a failing test that reproduces the defect, verify its failure, and then implement the fix to make the test pass.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+1. Primacy of Constitution: This Constitution supersedes all other documentation, practices, and informal conventions in the repository. All contributions MUST comply with its mandates.
+2. Amendment Procedure: Amendments to this Constitution require a formal revision of `.specify/memory/constitution.md` via a pull request. The version MUST be bumped semantically: MAJOR for backward-incompatible rule changes, MINOR for new principles/sections, and PATCH for minor wording updates.
+3. Compliance Verification: The implementation plan, specification documents, and checklists MUST verify compliance with all five Core Principles. Any deviation or exceptional case MUST be explicitly documented and justified under the 'Complexity Tracking' section of the implementation plan.
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-06-24 | **Last Amended**: 2026-06-24
