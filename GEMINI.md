@@ -1,5 +1,5 @@
 <!-- SPECKIT START -->
-Read active implementation plan: specs/001-export-gdrive-markdown/plan.md
+Read active implementation plan: specs/002-support-sheets-slides-export/plan.md
 <!-- SPECKIT END -->
 
 ## Development Workflows
