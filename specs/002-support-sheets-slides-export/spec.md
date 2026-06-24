@@ -53,12 +53,15 @@ Users can export a Google Presentation (Slides) using its file ID or URL to a cl
 - **FR-001**: System MUST retrieve file metadata (such as mimeType) before executing an export to identify the file type (Document, Spreadsheet, or Presentation).
 - **FR-002**: System MUST export Google Spreadsheets to CSV format if a spreadsheet type is detected.
 - **FR-003**: System MUST convert the exported CSV data to a valid Markdown table representation in the post-processing phase.
-- **FR-004**: System MUST document and log a warning that only the first sheet of a multi-sheet spreadsheet will be exported.
+- **FR-004**: System MUST log a warning to `stderr` indicating that only the first sheet of a multi-sheet spreadsheet was exported.
 - **FR-005**: System MUST export Google Presentations to PPTX format if a presentation type is detected.
 - **FR-006**: System MUST verify if `pandoc` is installed and available in the system path before attempting to convert a presentation PPTX file.
 - **FR-007**: System MUST fail fast and raise a user-friendly `FileNotFoundError` or custom error if a user attempts to export slides but `pandoc` is not installed.
-- **FR-008**: System MUST execute local `pandoc` to convert the exported PPTX presentation file to Markdown slides.
-- **FR-009**: Codebase structure MUST remain modular, maintainable, and cleanly separated across dedicated helper modules instead of bloated files.
+- FR-008: System MUST execute local `pandoc` to convert the exported PPTX presentation file to Markdown slides.
+- FR-009: Codebase structure MUST remain modular, maintainable, and cleanly separated across dedicated helper modules instead of bloated files.
+- FR-010: System MUST automatically delete temporary intermediate files (such as raw CSV or PPTX files) after a successful Markdown conversion.
+- FR-011: System MUST configure application logging to write with `DEBUG` verbosity level to a local log file every time.
+- FR-012: System MUST configure application logging to write to `stderr` with custom verbosity (defaulting to `WARNING` / `WARN`).
 
 ### Key Entities
 
@@ -79,3 +82,10 @@ Users can export a Google Presentation (Slides) using its file ID or URL to a cl
 - For Presentation export, the system relies on the user's local host having `pandoc` installed. `pandoc` is not packaged as a direct python dependency.
 - Spreadsheet formatting (colors, formulas, borders, merged cells) is out of scope.
 - Images and graphs within spreadsheets and presentations are secondary and do not need to be extracted or processed.
+
+## Clarifications
+
+### Session 2026-06-24
+
+- Q: Should intermediate files (PPTX, CSV) be deleted after a successful conversion? → A: Option A (automatically delete intermediate files after a successful conversion)
+- Q: Where should the spreadsheet multi-sheet warning be surfaced, and how should logging be configured? → A: Option B (log warning only to stderr to keep generated Markdown clean) and configure application logging to log with DEBUG verbosity to a local log file every time, and with custom (WARN/WARNING by default) verbosity to stderr.
