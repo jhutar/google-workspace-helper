@@ -22,7 +22,7 @@ Follow-up TODOs:
   - None (All placeholders successfully filled with concrete text)
 -->
 
-# Google Cloud CLI (gcloud-cli) Constitution
+# Google WOrkspace Helper (google-workspace-helper) Constitution
 
 ## Core Principles
 
