@@ -1,5 +1,7 @@
 <!-- SPECKIT START -->
-Read active implementation plan: specs/002-support-sheets-slides-export/plan.md
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+at specs/002-support-sheets-slides-export/plan.md
 <!-- SPECKIT END -->
 
 ## Development Workflows
