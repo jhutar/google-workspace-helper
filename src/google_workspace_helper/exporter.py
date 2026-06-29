@@ -1,25 +1,20 @@
+import json
 import logging
 import shutil
 import subprocess
-import json
 import tempfile
 import zipfile
 import re
 import xml.etree.ElementTree as ET  # nosec B405
 from pathlib import Path
 
+from google_workspace_helper.gws_runner import run_gws_json, run_gws_to_file
+
 logger = logging.getLogger("google_workspace_helper")
 
 MIME_SPREADSHEET = "application/vnd.google-apps.spreadsheet"
 MIME_PRESENTATION = "application/vnd.google-apps.presentation"
 MIME_DOCUMENT = "application/vnd.google-apps.document"
-
-
-def verify_gws_installed() -> None:
-    if not shutil.which("gws"):
-        raise FileNotFoundError(
-            "Error: gws CLI tool not found in system PATH. Please install it first."
-        )
 
 
 def verify_pandoc_installed() -> None:
@@ -31,58 +26,28 @@ def verify_pandoc_installed() -> None:
 
 
 def get_file_mime_type(file_id: str) -> str:
-    verify_gws_installed()
-    params_json = json.dumps({"fileId": file_id, "fields": "mimeType"})
-    command = ["gws", "drive", "files", "get", "--params", params_json]
     logger.debug("Fetching mime type for file_id=%s", file_id)
-    try:
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        data = json.loads(result.stdout)
-        mime_type = data.get("mimeType", "")
-        logger.debug("Detected mime type: %s", mime_type)
-        return mime_type
-    except subprocess.CalledProcessError as e:
-        error_msg = e.stderr.strip() if e.stderr else str(e)
-        raise RuntimeError(f"Error fetching file metadata: {error_msg}") from e
-    except (json.JSONDecodeError, KeyError) as e:
-        raise RuntimeError(f"Error parsing file metadata response: {e}") from e
+    params = json.dumps({"fileId": file_id, "fields": "mimeType"})
+    data = run_gws_json("drive", "files", "get", "--params", params)
+    mime_type = data.get("mimeType", "")
+    logger.debug("Detected mime type: %s", mime_type)
+    return mime_type
 
 
 def export_file(file_id: str, mime_type: str = "text/markdown") -> str:
-    verify_gws_installed()
+    logger.debug(
+        "Exporting file_id=%s with mime_type=%s via tempfile", file_id, mime_type
+    )
     with tempfile.TemporaryDirectory(dir=".") as tmp_dir:
         output_file = Path(tmp_dir) / f"{file_id}.export"
-        params_dict = {"fileId": file_id, "mimeType": mime_type}
-        params_json = json.dumps(params_dict)
-        command = [
-            "gws",
-            "drive",
-            "files",
-            "export",
-            "--params",
-            params_json,
-            "--output",
-            str(output_file),
-        ]
-        logger.debug(
-            "Exporting file_id=%s with mime_type=%s via tempfile", file_id, mime_type
+        params = json.dumps({"fileId": file_id, "mimeType": mime_type})
+        run_gws_to_file(
+            "drive", "files", "export", "--params", params, output_path=output_file
         )
-        try:
-            # Capture output to prevent gws logs or stdout JSON from leaking to our processes
-            subprocess.run(command, capture_output=True, check=True)
-            if output_file.exists():
-                return output_file.read_text(encoding="utf-8")
-            else:
-                raise FileNotFoundError(
-                    f"Error: Export file was not created by gws: {output_file}"
-                )
-        except subprocess.CalledProcessError as e:
-            error_msg = e.stderr.decode().strip() if e.stderr else str(e)
-            raise RuntimeError(f"Error executing gws export: {error_msg}") from e
+        return output_file.read_text(encoding="utf-8")
 
 
 def export_spreadsheet_as_csv(file_id: str) -> str:
-    verify_gws_installed()
     logger.debug("Exporting spreadsheet file_id=%s as CSV", file_id)
     logger.warning(
         "Only the first sheet of the spreadsheet will be exported. "
@@ -143,7 +108,6 @@ def extract_html_from_pptx(pptx_path: Path) -> str:
 
 
 def export_presentation_as_markdown(file_id: str) -> str:
-    verify_gws_installed()
     verify_pandoc_installed()
     logger.debug("Exporting presentation file_id=%s via PPTX+pandoc", file_id)
 
@@ -152,42 +116,22 @@ def export_presentation_as_markdown(file_id: str) -> str:
     )
     with tempfile.TemporaryDirectory(dir=".") as tmp_dir:
         pptx_path = Path(tmp_dir) / f"{file_id}.pptx"
-        params_json = json.dumps({"fileId": file_id, "mimeType": pptx_mime})
-        command = [
-            "gws",
-            "drive",
-            "files",
-            "export",
-            "--params",
-            params_json,
-            "--output",
-            str(pptx_path),
-        ]
+        params = json.dumps({"fileId": file_id, "mimeType": pptx_mime})
+        run_gws_to_file(
+            "drive", "files", "export", "--params", params, output_path=pptx_path
+        )
+        if pptx_path.stat().st_size == 0:
+            raise ValueError(
+                "Error: gws export command succeeded but PPTX file is empty."
+            )
+        logger.debug("Downloaded PPTX to %s", pptx_path)
 
-        try:
-            subprocess.run(command, capture_output=True, check=True)
-            if not pptx_path.exists() or pptx_path.stat().st_size == 0:
-                raise ValueError(
-                    "Error: gws export command succeeded but PPTX file is empty or missing."
-                )
-            logger.debug("Downloaded PPTX to %s", pptx_path)
-        except subprocess.CalledProcessError as e:
-            error_msg = e.stderr.decode().strip() if e.stderr else str(e)
-            raise RuntimeError(f"Error downloading presentation: {error_msg}") from e
-
-        # Extract slide structure to clean HTML
         try:
             html_content = extract_html_from_pptx(pptx_path)
         except Exception as e:
             raise RuntimeError(f"Error parsing PPTX structure: {e}") from e
 
-        pandoc_cmd = [
-            "pandoc",
-            "-f",
-            "html",
-            "-t",
-            "markdown",
-        ]
+        pandoc_cmd = ["pandoc", "-f", "html", "-t", "markdown"]
         try:
             pandoc_result = subprocess.run(
                 pandoc_cmd,

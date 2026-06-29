@@ -3,6 +3,7 @@ import sys
 import re
 from pathlib import Path
 from google_workspace_helper.logging_config import setup_logging
+from google_workspace_helper.gws_runner import check_gws_installed
 from google_workspace_helper.exporter import (
     export_file,
     get_file_mime_type,
@@ -113,10 +114,14 @@ def main() -> int:
     )
     export_parser.set_defaults(func=handle_export)
 
-    # Parse command line args
     args = parser.parse_args()
 
-    # Dispatch to subcommand function
+    try:
+        check_gws_installed()
+    except FileNotFoundError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+
     if hasattr(args, "func"):
         return args.func(args)
     else:
