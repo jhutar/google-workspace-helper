@@ -16,6 +16,7 @@ from google_workspace_helper.postprocessor import (
     post_process_markdown,
     csv_to_markdown_table,
 )
+from google_workspace_helper.appender import append_to_document
 
 
 def extract_file_id(input_str: str) -> str:
@@ -90,6 +91,39 @@ def handle_export(args: argparse.Namespace) -> int:
         return 1
 
 
+def handle_append(args: argparse.Namespace) -> int:
+    raw_input = args.file_id
+    try:
+        file_id = extract_file_id(raw_input)
+        validate_file_id(file_id)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+
+    text = args.text
+    image_path = None
+    if args.image:
+        image_path = Path(args.image)
+        if not image_path.exists():
+            print(f"Error: Image file not found: {image_path}", file=sys.stderr)
+            return 1
+
+    if not text and not image_path:
+        print(
+            "Error: At least one of --text or --image must be provided.",
+            file=sys.stderr,
+        )
+        return 1
+
+    try:
+        append_to_document(file_id, text=text, image_path=image_path)
+        print("Success: Content appended to document.")
+        return 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main() -> int:
     setup_logging()
     parser = argparse.ArgumentParser(
@@ -113,6 +147,22 @@ def main() -> int:
         help="Optional path to save output markdown. If omitted, dumps content directly to stdout.",
     )
     export_parser.set_defaults(func=handle_export)
+
+    append_parser = subparsers.add_parser(
+        "append",
+        help="Append text and/or an image to a Google Document.",
+    )
+    append_parser.add_argument("file_id", help="Google Document file ID or full URL.")
+    append_parser.add_argument(
+        "--text",
+        help="Plain text to append. Newlines are supported. "
+        "When used with --image, text is inserted before the image.",
+    )
+    append_parser.add_argument(
+        "--image",
+        help="Path to a local image file (PNG, JPEG, or GIF) to append.",
+    )
+    append_parser.set_defaults(func=handle_append)
 
     args = parser.parse_args()
 

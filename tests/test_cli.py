@@ -1,7 +1,12 @@
 import pytest
 import argparse
 from unittest.mock import patch
-from google_workspace_helper.cli import extract_file_id, validate_file_id, handle_export
+from google_workspace_helper.cli import (
+    extract_file_id,
+    validate_file_id,
+    handle_export,
+    handle_append,
+)
 
 
 def test_extract_file_id_direct():
@@ -101,3 +106,68 @@ def test_handle_export_to_file(mock_process, mock_export, mock_mime, tmp_path, c
 
     captured = capsys.readouterr()
     assert f"Success: Exported clean markdown to {out_file}" in captured.out
+
+
+def test_handle_append_invalid_id(capsys):
+    args = argparse.Namespace(file_id="bad; id", text="hello", image=None)
+    status = handle_append(args)
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "Invalid File ID" in captured.err
+
+
+def test_handle_append_no_flags(capsys):
+    args = argparse.Namespace(file_id="doc123", text=None, image=None)
+    status = handle_append(args)
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "At least one of --text or --image" in captured.err
+
+
+def test_handle_append_image_not_found(capsys):
+    args = argparse.Namespace(
+        file_id="doc123", text=None, image="/nonexistent/image.png"
+    )
+    status = handle_append(args)
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "Image file not found" in captured.err
+
+
+@patch("google_workspace_helper.cli.append_to_document")
+def test_handle_append_text_only(mock_append, capsys):
+    args = argparse.Namespace(file_id="doc123", text="Hello world", image=None)
+    status = handle_append(args)
+    assert status == 0
+    mock_append.assert_called_once_with("doc123", text="Hello world", image_path=None)
+    captured = capsys.readouterr()
+    assert "Success" in captured.out
+
+
+@patch("google_workspace_helper.cli.append_to_document")
+def test_handle_append_with_image(mock_append, capsys, tmp_path):
+    image_file = tmp_path / "graph.png"
+    image_file.write_bytes(b"\x89PNG")
+    args = argparse.Namespace(file_id="doc123", text="desc", image=str(image_file))
+    status = handle_append(args)
+    assert status == 0
+    mock_append.assert_called_once_with("doc123", text="desc", image_path=image_file)
+
+
+@patch("google_workspace_helper.cli.append_to_document")
+def test_handle_append_url_extraction(mock_append, capsys):
+    url = "https://docs.google.com/document/d/abc123_def/edit"
+    args = argparse.Namespace(file_id=url, text="test", image=None)
+    status = handle_append(args)
+    assert status == 0
+    mock_append.assert_called_once_with("abc123_def", text="test", image_path=None)
+
+
+@patch("google_workspace_helper.cli.append_to_document")
+def test_handle_append_error(mock_append, capsys):
+    mock_append.side_effect = RuntimeError("API error")
+    args = argparse.Namespace(file_id="doc123", text="hello", image=None)
+    status = handle_append(args)
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "API error" in captured.err

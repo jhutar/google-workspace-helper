@@ -1,6 +1,6 @@
 # Google Workspace Helper
 
-CLI utility to assist with Google Workspace operations. Currently supports exporting Google Drive files (documents, spreadsheets, and slides) to clean Markdown with local image decoding and extraction.
+CLI utility to assist with Google Workspace operations. Supports exporting Google Drive files (documents, spreadsheets, and slides) to clean Markdown with local image decoding and extraction, and appending text and images to Google Documents.
 
 ## Prerequisites
 
@@ -20,6 +20,11 @@ This will make the `google-workspace-helper` command available globally in your 
 Export a Google Drive document, spreadsheet, or slide file to clean Markdown:
 ```bash
 google-workspace-helper export <file_id> [-o <output_path>]
+```
+
+Append text and/or an image to a Google Document:
+```bash
+google-workspace-helper append <file_id> --text "Description" --image graph.png
 ```
 
 ## Development

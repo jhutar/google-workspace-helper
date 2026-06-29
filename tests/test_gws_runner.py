@@ -62,7 +62,11 @@ def test_run_gws_json_with_body(mock_run):
     )
     body = {"requests": [{"insertText": {"text": "hello"}}]}
     result = run_gws_json(
-        "docs", "documents", "batchUpdate", "--params", '{"documentId": "doc123"}',
+        "docs",
+        "documents",
+        "batchUpdate",
+        "--params",
+        '{"documentId": "doc123"}',
         json_body=body,
     )
     assert result["documentId"] == "doc123"
@@ -98,7 +102,11 @@ def test_run_gws_to_file_success(mock_run, tmp_path):
 
     mock_run.side_effect = side_effect
     result = run_gws_to_file(
-        "drive", "files", "export", "--params", '{"fileId": "abc"}',
+        "drive",
+        "files",
+        "export",
+        "--params",
+        '{"fileId": "abc"}',
         output_path=output_file,
     )
     assert result == output_file
@@ -111,7 +119,11 @@ def test_run_gws_to_file_not_created(mock_run, tmp_path):
     mock_run.return_value = MagicMock(returncode=0)
     with pytest.raises(FileNotFoundError, match="Output file was not created"):
         run_gws_to_file(
-            "drive", "files", "export", "--params", '{"fileId": "abc"}',
+            "drive",
+            "files",
+            "export",
+            "--params",
+            '{"fileId": "abc"}',
             output_path=output_file,
         )
 
@@ -124,7 +136,11 @@ def test_run_gws_to_file_failure(mock_run, tmp_path):
     )
     with pytest.raises(RuntimeError, match="gws command failed: auth expired"):
         run_gws_to_file(
-            "drive", "files", "export", "--params", '{"fileId": "abc"}',
+            "drive",
+            "files",
+            "export",
+            "--params",
+            '{"fileId": "abc"}',
             output_path=output_file,
         )
 
@@ -137,7 +153,9 @@ def test_run_gws_upload_success(mock_run, tmp_path):
         returncode=0, stdout=json.dumps({"id": "uploaded_123"})
     )
     result = run_gws_upload(
-        "drive", "files", "create",
+        "drive",
+        "files",
+        "create",
         upload_path=upload_file,
         upload_content_type="image/png",
     )
@@ -156,9 +174,7 @@ def test_run_gws_upload_without_content_type(mock_run, tmp_path):
     mock_run.return_value = MagicMock(
         returncode=0, stdout=json.dumps({"id": "uploaded_456"})
     )
-    result = run_gws_upload(
-        "drive", "files", "create", upload_path=upload_file
-    )
+    result = run_gws_upload("drive", "files", "create", upload_path=upload_file)
     assert result["id"] == "uploaded_456"
     cmd = mock_run.call_args[0][0]
     assert "--upload-content-type" not in cmd
@@ -173,7 +189,9 @@ def test_run_gws_upload_failure(mock_run, tmp_path):
     )
     with pytest.raises(RuntimeError, match="gws command failed: quota exceeded"):
         run_gws_upload(
-            "drive", "files", "create",
+            "drive",
+            "files",
+            "create",
             upload_path=upload_file,
             upload_content_type="image/png",
         )
@@ -186,7 +204,9 @@ def test_run_gws_upload_invalid_response(mock_run, tmp_path):
     mock_run.return_value = MagicMock(returncode=0, stdout="not json")
     with pytest.raises(RuntimeError, match="Failed to parse gws upload response"):
         run_gws_upload(
-            "drive", "files", "create",
+            "drive",
+            "files",
+            "create",
             upload_path=upload_file,
             upload_content_type="image/png",
         )
