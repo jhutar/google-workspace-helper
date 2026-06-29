@@ -1,6 +1,5 @@
 import pytest
-from unittest.mock import patch, call
-from pathlib import Path
+from unittest.mock import patch
 
 from google_workspace_helper.appender import (
     append_text,
@@ -43,7 +42,9 @@ def test_append_image_success(mock_domain, mock_upload, mock_json, mock_gws, tmp
     mock_upload.return_value = {"id": "uploaded_123"}
     mock_json.side_effect = [
         {"kind": "drive#permission"},
-        {"webContentLink": "https://drive.google.com/uc?id=uploaded_123&export=download"},
+        {
+            "webContentLink": "https://drive.google.com/uc?id=uploaded_123&export=download"
+        },
         {"documentId": "doc123"},
     ]
 
@@ -70,7 +71,9 @@ def test_append_image_insert_fails_cleanup_succeeds(
     mock_upload.return_value = {"id": "uploaded_123"}
     mock_json.side_effect = [
         {"kind": "drive#permission"},
-        {"webContentLink": "https://drive.google.com/uc?id=uploaded_123&export=download"},
+        {
+            "webContentLink": "https://drive.google.com/uc?id=uploaded_123&export=download"
+        },
         RuntimeError("Insert failed: quota exceeded"),
     ]
 
@@ -96,7 +99,9 @@ def test_append_image_insert_succeeds_cleanup_fails(
     mock_upload.return_value = {"id": "uploaded_123"}
     mock_json.side_effect = [
         {"kind": "drive#permission"},
-        {"webContentLink": "https://drive.google.com/uc?id=uploaded_123&export=download"},
+        {
+            "webContentLink": "https://drive.google.com/uc?id=uploaded_123&export=download"
+        },
         {"documentId": "doc123"},
     ]
     mock_gws.side_effect = RuntimeError("Delete failed: network error")
@@ -119,7 +124,9 @@ def test_append_image_both_fail(
     mock_upload.return_value = {"id": "uploaded_123"}
     mock_json.side_effect = [
         {"kind": "drive#permission"},
-        {"webContentLink": "https://drive.google.com/uc?id=uploaded_123&export=download"},
+        {
+            "webContentLink": "https://drive.google.com/uc?id=uploaded_123&export=download"
+        },
         RuntimeError("Insert failed"),
     ]
     mock_gws.side_effect = RuntimeError("Delete failed")
@@ -156,7 +163,9 @@ def test_append_image_no_web_content_link(
 @patch(f"{MODULE}.append_image")
 @patch(f"{MODULE}.append_text")
 @patch(f"{MODULE}._verify_is_document")
-def test_append_to_document_text_and_image(mock_verify, mock_text, mock_image, tmp_path):
+def test_append_to_document_text_and_image(
+    mock_verify, mock_text, mock_image, tmp_path
+):
     image_file = tmp_path / "graph.png"
     image_file.write_bytes(b"\x89PNG")
 

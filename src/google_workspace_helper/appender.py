@@ -45,15 +45,11 @@ def append_text(file_id: str, text: str) -> None:
         ]
     }
     params = json.dumps({"documentId": file_id})
-    run_gws_json(
-        "docs", "documents", "batchUpdate", "--params", params, json_body=body
-    )
+    run_gws_json("docs", "documents", "batchUpdate", "--params", params, json_body=body)
 
 
 def append_image(file_id: str, image_path: Path) -> None:
-    logger.debug(
-        "Appending image %s to document file_id=%s", image_path, file_id
-    )
+    logger.debug("Appending image %s to document file_id=%s", image_path, file_id)
 
     domain = _get_user_domain()
 
@@ -80,8 +76,11 @@ def append_image(file_id: str, image_path: Path) -> None:
         perm_params = json.dumps({"fileId": uploaded_file_id})
         perm_body = {"role": "reader", "type": "domain", "domain": domain}
         run_gws_json(
-            "drive", "permissions", "create",
-            "--params", perm_params,
+            "drive",
+            "permissions",
+            "create",
+            "--params",
+            perm_params,
             json_body=perm_body,
         )
         logger.debug("Set domain reader permission on %s", uploaded_file_id)
@@ -92,9 +91,7 @@ def append_image(file_id: str, image_path: Path) -> None:
         meta = run_gws_json("drive", "files", "get", "--params", meta_params)
         web_content_link = meta.get("webContentLink")
         if not web_content_link:
-            raise RuntimeError(
-                "Drive file metadata did not include webContentLink"
-            )
+            raise RuntimeError("Drive file metadata did not include webContentLink")
         logger.debug("Got webContentLink: %s", web_content_link)
 
         insert_body = {
@@ -109,8 +106,11 @@ def append_image(file_id: str, image_path: Path) -> None:
         }
         doc_params = json.dumps({"documentId": file_id})
         run_gws_json(
-            "docs", "documents", "batchUpdate",
-            "--params", doc_params,
+            "docs",
+            "documents",
+            "batchUpdate",
+            "--params",
+            doc_params,
             json_body=insert_body,
         )
         logger.debug("Inserted image into document %s", file_id)
