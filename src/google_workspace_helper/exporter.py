@@ -107,6 +107,35 @@ def extract_html_from_pptx(pptx_path: Path) -> str:
     return "\n<hr />\n".join(html_slides)
 
 
+def _extract_markdown_from_slides_api(file_id: str) -> str:
+    params = json.dumps({"presentationId": file_id})
+    data = run_gws_json("slides", "presentations", "get", "--params", params)
+
+    slides_md = []
+    for slide in data.get("slides", []):
+        paragraphs = []
+        for pe in slide.get("pageElements", []):
+            shape = pe.get("shape", {})
+            text_body = shape.get("text", {})
+            for te in text_body.get("textElements", []):
+                text_run = te.get("textRun", {})
+                content = text_run.get("content", "").strip()
+                if content:
+                    paragraphs.append(content)
+
+        if paragraphs:
+            title = paragraphs[0]
+            body = paragraphs[1:]
+            slide_md = f"## {title}\n"
+            if body:
+                slide_md += "\n".join(f"- {p}" for p in body) + "\n"
+            slides_md.append(slide_md)
+        else:
+            slides_md.append("## Slide\n\n*Empty Slide*\n")
+
+    return "\n---\n\n".join(slides_md)
+
+
 def export_presentation_as_markdown(file_id: str) -> str:
     verify_pandoc_installed()
     logger.debug("Exporting presentation file_id=%s via PPTX+pandoc", file_id)
@@ -117,9 +146,17 @@ def export_presentation_as_markdown(file_id: str) -> str:
     with tempfile.TemporaryDirectory(dir=".") as tmp_dir:
         pptx_path = Path(tmp_dir) / f"{file_id}.pptx"
         params = json.dumps({"fileId": file_id, "mimeType": pptx_mime})
-        run_gws_to_file(
-            "drive", "files", "export", "--params", params, output_path=pptx_path
-        )
+        try:
+            run_gws_to_file(
+                "drive", "files", "export", "--params", params, output_path=pptx_path
+            )
+        except RuntimeError as e:
+            if "too large" in str(e).lower():
+                logger.warning(
+                    "PPTX export failed (file too large), falling back to Slides API"
+                )
+                return _extract_markdown_from_slides_api(file_id)
+            raise
         if pptx_path.stat().st_size == 0:
             raise ValueError(
                 "Error: gws export command succeeded but PPTX file is empty."

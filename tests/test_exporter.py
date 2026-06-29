@@ -8,6 +8,7 @@ from google_workspace_helper.exporter import (
     verify_pandoc_installed,
     export_spreadsheet_as_csv,
     export_presentation_as_markdown,
+    _extract_markdown_from_slides_api,
 )
 
 
@@ -125,3 +126,65 @@ def test_export_presentation_no_pandoc(mock_which):
     mock_which.return_value = None
     with pytest.raises(FileNotFoundError, match="pandoc is not installed"):
         export_presentation_as_markdown("slides_123")
+
+
+@patch("google_workspace_helper.exporter.run_gws_json")
+def test_extract_markdown_from_slides_api(mock_run_json):
+    mock_run_json.return_value = {
+        "slides": [
+            {
+                "pageElements": [
+                    {
+                        "shape": {
+                            "text": {
+                                "textElements": [
+                                    {"paragraphMarker": {}},
+                                    {"textRun": {"content": "Title One\n"}},
+                                    {"paragraphMarker": {}},
+                                    {"textRun": {"content": "Bullet A\n"}},
+                                    {"paragraphMarker": {}},
+                                    {"textRun": {"content": "Bullet B\n"}},
+                                ]
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "pageElements": [
+                    {
+                        "shape": {
+                            "text": {
+                                "textElements": [
+                                    {"textRun": {"content": "Title Two\n"}},
+                                ]
+                            }
+                        }
+                    }
+                ]
+            },
+        ]
+    }
+    result = _extract_markdown_from_slides_api("slides_123")
+    assert "## Title One" in result
+    assert "- Bullet A" in result
+    assert "- Bullet B" in result
+    assert "## Title Two" in result
+    assert "---" in result
+
+
+@patch("google_workspace_helper.exporter._extract_markdown_from_slides_api")
+@patch("google_workspace_helper.exporter.run_gws_to_file")
+@patch("google_workspace_helper.exporter.shutil.which")
+def test_export_presentation_fallback_on_too_large(
+    mock_which, mock_to_file, mock_slides_api
+):
+    mock_which.return_value = "/usr/bin/pandoc"
+    mock_to_file.side_effect = RuntimeError(
+        "gws command failed: This file is too large to be exported."
+    )
+    mock_slides_api.return_value = "## Slide 1\n\n- Content\n"
+
+    result = export_presentation_as_markdown("slides_123")
+    assert result == "## Slide 1\n\n- Content\n"
+    mock_slides_api.assert_called_once_with("slides_123")
