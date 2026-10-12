@@ -27,6 +27,16 @@ Append text and/or an image to a Google Document:
 google-workspace-helper append <file_id> --text "Description" --image graph.png
 ```
 
+Manage tasks in your default Google Tasks list:
+```bash
+google-workspace-helper task add --title "Buy milk" --details "2 liters" --due 3d
+google-workspace-helper task list [--all]
+google-workspace-helper task show <task_id>
+google-workspace-helper task done "Buy milk"
+google-workspace-helper task update <task_id> --title "New title" --due 2026-10-20
+```
+Due dates accept `YYYY-MM-DD` or a relative format like `3d` (3 days from today). `task done` matches the exact title and fails if no open task or multiple open tasks share it.
+
 ## Development
 
 Initialize python toolchains, pre-commit hooks, and prepare the workspace:

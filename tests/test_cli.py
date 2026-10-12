@@ -6,6 +6,11 @@ from google_workspace_helper.cli import (
     validate_file_id,
     handle_export,
     handle_append,
+    handle_task_add,
+    handle_task_list,
+    handle_task_show,
+    handle_task_done,
+    handle_task_update,
 )
 
 
@@ -171,3 +176,147 @@ def test_handle_append_error(mock_append, capsys):
     assert status == 1
     captured = capsys.readouterr()
     assert "API error" in captured.err
+
+
+@patch("google_workspace_helper.cli.add_task")
+def test_handle_task_add(mock_add, capsys):
+    mock_add.return_value = {"id": "t1", "title": "Buy milk"}
+    args = argparse.Namespace(title="Buy milk", details="2 liters", due="2026-10-20")
+    status = handle_task_add(args)
+    assert status == 0
+    mock_add.assert_called_once_with("Buy milk", notes="2 liters", due="2026-10-20")
+    captured = capsys.readouterr()
+    assert "Success: Added task 'Buy milk'" in captured.out
+
+
+@patch("google_workspace_helper.cli.add_task")
+def test_handle_task_add_error(mock_add, capsys):
+    mock_add.side_effect = ValueError("Error: Invalid due date 'tomorrow'.")
+    args = argparse.Namespace(title="Buy milk", details=None, due="tomorrow")
+    status = handle_task_add(args)
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "Invalid due date" in captured.err
+
+
+@patch("google_workspace_helper.cli.list_tasks")
+def test_handle_task_list(mock_list, capsys):
+    mock_list.return_value = [
+        {
+            "id": "t1",
+            "title": "Buy milk",
+            "status": "needsAction",
+            "due": "2026-10-20T00:00:00.000Z",
+        },
+        {"id": "t2", "title": "Done thing", "status": "completed"},
+    ]
+    args = argparse.Namespace(all=True)
+    status = handle_task_list(args)
+    assert status == 0
+    mock_list.assert_called_once_with(include_completed=True)
+    captured = capsys.readouterr()
+    assert "t1  Buy milk  due 2026-10-20" in captured.out
+    assert "t2  Done thing  due none [completed]" in captured.out
+
+
+@patch("google_workspace_helper.cli.list_tasks")
+def test_handle_task_list_empty(mock_list, capsys):
+    mock_list.return_value = []
+    args = argparse.Namespace(all=False)
+    status = handle_task_list(args)
+    assert status == 0
+    mock_list.assert_called_once_with(include_completed=False)
+    captured = capsys.readouterr()
+    assert "No tasks found." in captured.out
+
+
+@patch("google_workspace_helper.cli.list_tasks")
+def test_handle_task_list_error(mock_list, capsys):
+    mock_list.side_effect = RuntimeError("gws command failed")
+    args = argparse.Namespace(all=False)
+    status = handle_task_list(args)
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "gws command failed" in captured.err
+
+
+@patch("google_workspace_helper.cli.get_task")
+def test_handle_task_show(mock_get, capsys):
+    mock_get.return_value = {
+        "id": "t1",
+        "title": "Buy milk",
+        "status": "needsAction",
+        "due": "2026-10-20T00:00:00.000Z",
+        "notes": "2 liters",
+    }
+    args = argparse.Namespace(task_id="t1")
+    status = handle_task_show(args)
+    assert status == 0
+    mock_get.assert_called_once_with("t1")
+    captured = capsys.readouterr()
+    assert "ID: t1" in captured.out
+    assert "Title: Buy milk" in captured.out
+    assert "Due: 2026-10-20" in captured.out
+    assert "Notes: 2 liters" in captured.out
+
+
+@patch("google_workspace_helper.cli.get_task")
+def test_handle_task_show_error(mock_get, capsys):
+    mock_get.side_effect = RuntimeError("Task not found")
+    args = argparse.Namespace(task_id="bad")
+    status = handle_task_show(args)
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "Task not found" in captured.err
+
+
+@patch("google_workspace_helper.cli.mark_task_done_by_title")
+def test_handle_task_done(mock_done, capsys):
+    mock_done.return_value = {"id": "t1", "title": "Buy milk"}
+    args = argparse.Namespace(title="Buy milk")
+    status = handle_task_done(args)
+    assert status == 0
+    mock_done.assert_called_once_with("Buy milk")
+    captured = capsys.readouterr()
+    assert "Success: Marked task 'Buy milk' as done" in captured.out
+
+
+@patch("google_workspace_helper.cli.mark_task_done_by_title")
+def test_handle_task_done_ambiguous(mock_done, capsys):
+    mock_done.side_effect = ValueError(
+        "Error: Found 2 open tasks with title 'Buy milk'."
+    )
+    args = argparse.Namespace(title="Buy milk")
+    status = handle_task_done(args)
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "2 open tasks" in captured.err
+
+
+def test_handle_task_update_no_flags(capsys):
+    args = argparse.Namespace(task_id="t1", title=None, details=None, due=None)
+    status = handle_task_update(args)
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "At least one of --title, --details or --due" in captured.err
+
+
+@patch("google_workspace_helper.cli.update_task")
+def test_handle_task_update(mock_update, capsys):
+    mock_update.return_value = {"id": "t1", "title": "New title"}
+    args = argparse.Namespace(task_id="t1", title="New title", details=None, due=None)
+    status = handle_task_update(args)
+    assert status == 0
+    mock_update.assert_called_once_with("t1", title="New title", notes=None, due=None)
+    captured = capsys.readouterr()
+    assert "Success: Updated task 'New title'" in captured.out
+
+
+@patch("google_workspace_helper.cli.update_task")
+def test_handle_task_update_error(mock_update, capsys):
+    mock_update.side_effect = ValueError("Error: Invalid due date 'tomorrow'.")
+    args = argparse.Namespace(task_id="t1", title=None, details=None, due="tomorrow")
+    status = handle_task_update(args)
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "Invalid due date" in captured.err

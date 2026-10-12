@@ -17,6 +17,13 @@ from google_workspace_helper.postprocessor import (
     csv_to_markdown_table,
 )
 from google_workspace_helper.appender import append_to_document
+from google_workspace_helper.tasks import (
+    add_task,
+    get_task,
+    list_tasks,
+    mark_task_done_by_title,
+    update_task,
+)
 
 
 def extract_file_id(input_str: str) -> str:
@@ -124,6 +131,83 @@ def handle_append(args: argparse.Namespace) -> int:
         return 1
 
 
+def _format_due(due: str | None) -> str:
+    """Format an RFC 3339 due timestamp as a plain date string."""
+    return due.split("T")[0] if due else "none"
+
+
+def handle_task_add(args: argparse.Namespace) -> int:
+    try:
+        task = add_task(args.title, notes=args.details, due=args.due)
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    print(f"Success: Added task '{task.get('title', '')}' (ID: {task.get('id', '')})")
+    return 0
+
+
+def handle_task_list(args: argparse.Namespace) -> int:
+    try:
+        tasks = list_tasks(include_completed=args.all)
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    if not tasks:
+        print("No tasks found.")
+        return 0
+    for task in tasks:
+        completed = " [completed]" if task.get("status") == "completed" else ""
+        print(
+            f"{task.get('id', '')}  {task.get('title', '')}  "
+            f"due {_format_due(task.get('due'))}{completed}"
+        )
+    return 0
+
+
+def handle_task_show(args: argparse.Namespace) -> int:
+    try:
+        task = get_task(args.task_id)
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    print(f"ID: {task.get('id', '')}")
+    print(f"Title: {task.get('title', '')}")
+    print(f"Status: {task.get('status', '')}")
+    print(f"Due: {_format_due(task.get('due'))}")
+    print(f"Notes: {task.get('notes', '')}")
+    return 0
+
+
+def handle_task_done(args: argparse.Namespace) -> int:
+    try:
+        task = mark_task_done_by_title(args.title)
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    print(
+        f"Success: Marked task '{task.get('title', '')}' as done (ID: {task.get('id', '')})"
+    )
+    return 0
+
+
+def handle_task_update(args: argparse.Namespace) -> int:
+    if not args.title and not args.details and not args.due:
+        print(
+            "Error: At least one of --title, --details or --due must be provided.",
+            file=sys.stderr,
+        )
+        return 1
+    try:
+        task = update_task(
+            args.task_id, title=args.title, notes=args.details, due=args.due
+        )
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    print(f"Success: Updated task '{task.get('title', '')}' (ID: {task.get('id', '')})")
+    return 0
+
+
 def main() -> int:
     setup_logging()
     parser = argparse.ArgumentParser(
@@ -163,6 +247,63 @@ def main() -> int:
         help="Path to a local image file (PNG, JPEG, or GIF) to append.",
     )
     append_parser.set_defaults(func=handle_append)
+
+    # Define 'task' subcommand group
+    task_parser = subparsers.add_parser(
+        "task",
+        help="Manage tasks in the default Google Tasks list.",
+    )
+    task_subparsers = task_parser.add_subparsers(
+        dest="task_command", required=True, help="Available task commands"
+    )
+
+    task_add_parser = task_subparsers.add_parser(
+        "add", help="Add a task to the default task list."
+    )
+    task_add_parser.add_argument("--title", required=True, help="Task title.")
+    task_add_parser.add_argument(
+        "--details", help="Task notes/details. Newlines are supported."
+    )
+    task_add_parser.add_argument(
+        "--due",
+        help="Due date as YYYY-MM-DD or a relative format like 3d (3 days from today).",
+    )
+    task_add_parser.set_defaults(func=handle_task_add)
+
+    task_list_parser = task_subparsers.add_parser(
+        "list", help="List tasks in the default task list."
+    )
+    task_list_parser.add_argument(
+        "--all", action="store_true", help="Include completed tasks."
+    )
+    task_list_parser.set_defaults(func=handle_task_list)
+
+    task_show_parser = task_subparsers.add_parser(
+        "show", help="Show full details of a task."
+    )
+    task_show_parser.add_argument("task_id", help="Task ID (see 'task list').")
+    task_show_parser.set_defaults(func=handle_task_show)
+
+    task_done_parser = task_subparsers.add_parser(
+        "done", help="Mark a task as done by its exact title."
+    )
+    task_done_parser.add_argument(
+        "title",
+        help="Exact title of the open task to mark done. Must be unique among open tasks.",
+    )
+    task_done_parser.set_defaults(func=handle_task_done)
+
+    task_update_parser = task_subparsers.add_parser(
+        "update", help="Update a task's title, details or due date."
+    )
+    task_update_parser.add_argument("task_id", help="Task ID (see 'task list').")
+    task_update_parser.add_argument("--title", help="New task title.")
+    task_update_parser.add_argument("--details", help="New task notes/details.")
+    task_update_parser.add_argument(
+        "--due",
+        help="New due date as YYYY-MM-DD or a relative format like 3d.",
+    )
+    task_update_parser.set_defaults(func=handle_task_update)
 
     args = parser.parse_args()
 
