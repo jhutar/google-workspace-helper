@@ -1,16 +1,20 @@
-import pytest
 import argparse
+import json
 from unittest.mock import patch
+
+import pytest
+
 from google_workspace_helper.cli import (
     extract_file_id,
-    validate_file_id,
-    handle_export,
     handle_append,
+    handle_comments,
+    handle_export,
     handle_task_add,
+    handle_task_done,
     handle_task_list,
     handle_task_show,
-    handle_task_done,
     handle_task_update,
+    validate_file_id,
 )
 
 
@@ -320,3 +324,61 @@ def test_handle_task_update_error(mock_update, capsys):
     assert status == 1
     captured = capsys.readouterr()
     assert "Invalid due date" in captured.err
+
+
+def test_handle_comments_invalid_id(capsys):
+    args = argparse.Namespace(file_id="bad; id", json=False, output=None)
+    status = handle_comments(args)
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "Invalid File ID" in captured.err
+
+
+@patch("google_workspace_helper.cli.list_comments")
+def test_handle_comments_markdown_stdout(mock_list, capsys):
+    mock_list.return_value = [
+        {
+            "content": "Please fix this.",
+            "author": {"displayName": "Alice", "emailAddress": "alice@example.com"},
+        }
+    ]
+    args = argparse.Namespace(file_id="doc123", json=False, output=None)
+    status = handle_comments(args)
+    assert status == 0
+    mock_list.assert_called_once_with("doc123")
+    captured = capsys.readouterr()
+    assert "## Thread 1: Alice (alice@example.com)" in captured.out
+    assert "Please fix this." in captured.out
+
+
+@patch("google_workspace_helper.cli.list_comments")
+def test_handle_comments_json_to_file(mock_list, tmp_path, capsys):
+    comments = [{"id": "c1", "content": "Hello"}]
+    mock_list.return_value = comments
+    output_file = tmp_path / "comments.json"
+    args = argparse.Namespace(file_id="doc123", json=True, output=str(output_file))
+    status = handle_comments(args)
+    assert status == 0
+    assert json.loads(output_file.read_text(encoding="utf-8")) == comments
+    captured = capsys.readouterr()
+    assert f"Success: Saved comments to {output_file}" in captured.out
+
+
+@patch("google_workspace_helper.cli.list_comments")
+def test_handle_comments_extracts_url(mock_list, capsys):
+    mock_list.return_value = []
+    url = "https://docs.google.com/document/d/abc123_def/edit"
+    args = argparse.Namespace(file_id=url, json=False, output=None)
+    status = handle_comments(args)
+    assert status == 0
+    mock_list.assert_called_once_with("abc123_def")
+
+
+@patch("google_workspace_helper.cli.list_comments")
+def test_handle_comments_error(mock_list, capsys):
+    mock_list.side_effect = RuntimeError("permission denied")
+    args = argparse.Namespace(file_id="doc123", json=False, output=None)
+    status = handle_comments(args)
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "permission denied" in captured.err

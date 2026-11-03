@@ -1,22 +1,28 @@
 import argparse
-import sys
+import json
 import re
+import sys
 from pathlib import Path
-from google_workspace_helper.logging_config import setup_logging
-from google_workspace_helper.gws_runner import check_gws_installed
-from google_workspace_helper.exporter import (
-    export_file,
-    get_file_mime_type,
-    export_spreadsheet_as_csv,
-    export_presentation_as_markdown,
-    MIME_SPREADSHEET,
-    MIME_PRESENTATION,
-)
-from google_workspace_helper.postprocessor import (
-    post_process_markdown,
-    csv_to_markdown_table,
-)
+
 from google_workspace_helper.appender import append_to_document
+from google_workspace_helper.comments import (
+    format_comments_markdown,
+    list_comments,
+)
+from google_workspace_helper.exporter import (
+    MIME_PRESENTATION,
+    MIME_SPREADSHEET,
+    export_file,
+    export_presentation_as_markdown,
+    export_spreadsheet_as_csv,
+    get_file_mime_type,
+)
+from google_workspace_helper.gws_runner import check_gws_installed
+from google_workspace_helper.logging_config import setup_logging
+from google_workspace_helper.postprocessor import (
+    csv_to_markdown_table,
+    post_process_markdown,
+)
 from google_workspace_helper.tasks import (
     add_task,
     get_task,
@@ -127,6 +133,37 @@ def handle_append(args: argparse.Namespace) -> int:
         print("Success: Content appended to document.")
         return 0
     except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+def handle_comments(args: argparse.Namespace) -> int:
+    """Fetch comment threads for a Google Drive file and output them."""
+    raw_input = args.file_id
+    try:
+        file_id = extract_file_id(raw_input)
+        validate_file_id(file_id)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+
+    try:
+        comments = list_comments(file_id)
+        output = (
+            json.dumps(comments, indent=2) + "\n"
+            if args.json
+            else format_comments_markdown(comments)
+        )
+
+        if args.output:
+            output_path = Path(args.output)
+            output_path.write_text(output, encoding="utf-8")
+            print(f"Success: Saved comments to {output_path}")
+        else:
+            sys.stdout.write(output)
+
+        return 0
+    except (RuntimeError, OSError) as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
@@ -247,6 +284,23 @@ def main() -> int:
         help="Path to a local image file (PNG, JPEG, or GIF) to append.",
     )
     append_parser.set_defaults(func=handle_append)
+
+    comments_parser = subparsers.add_parser(
+        "comments",
+        help="Dump comment threads from a Google Drive file.",
+    )
+    comments_parser.add_argument("file_id", help="Google Drive file ID or full URL.")
+    comments_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output raw JSON instead of Markdown.",
+    )
+    comments_parser.add_argument(
+        "-o",
+        "--output",
+        help="Optional path to save output. If omitted, dumps content to stdout.",
+    )
+    comments_parser.set_defaults(func=handle_comments)
 
     # Define 'task' subcommand group
     task_parser = subparsers.add_parser(
