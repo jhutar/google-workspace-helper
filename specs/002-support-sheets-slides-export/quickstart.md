@@ -30,7 +30,7 @@ google-workspace-helper export <spreadsheet_id_or_url> --output test_sheet.md
 1. **Exit Code**: `0`.
 2. **Output File**: A clean `test_sheet.md` file created in the current directory, formatted as a standard Markdown table representing the first sheet of the spreadsheet.
 3. **Warnings**: A warning logged to `stderr` indicating that only the first sheet was exported.
-4. **Log File**: `google-workspace-helper.log` created in the current working directory containing detailed `DEBUG` trace logs.
+4. **Log File**: `$XDG_CACHE_HOME/google-workspace-helper/google-workspace-helper.log` (defaults to `~/.cache/google-workspace-helper/google-workspace-helper.log`) containing detailed `DEBUG` trace logs.
 
 ---
 

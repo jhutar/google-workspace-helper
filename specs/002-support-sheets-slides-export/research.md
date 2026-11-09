@@ -35,7 +35,7 @@ Execute local `pandoc` as an external subprocess to convert downloaded PPTX file
 
 ### Decision
 Utilize Python's standard `logging` library. Configure logging at application startup:
-1. **File Handler**: Appends detailed logs with `DEBUG` verbosity to a local log file named `google-workspace-helper.log` on every execution.
+1. **File Handler**: Appends detailed logs with `DEBUG` verbosity to `$XDG_CACHE_HOME/google-workspace-helper/google-workspace-helper.log` (defaults to `~/.cache/...`) on every execution.
 2. **Stream Handler**: Outputs warnings, errors, and severe messages (defaults to `WARNING` level) to `stderr` with a clean, user-friendly format.
 
 ### Rationale
